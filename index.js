@@ -1,40 +1,19 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-export default class ReadMore extends React.Component {
+export default class ControlledReadMe extends React.Component {
   state = {
     measured: false,
     shouldShowReadMore: false,
-    showAllText: false
+    showAllText: false,
   };
 
   async componentDidMount() {
     this._isMounted = true;
-    await nextFrameAsync();
-
-    if (!this._isMounted) {
-      return;
-    }
-
-    // Get the height of the text with no restriction on number of lines
-    const fullHeight = await measureHeightAsync(this._text);
-    this.setState({ measured: true });
-    await nextFrameAsync();
-
-    if (!this._isMounted) {
-      return;
-    }
-
-    // Get the height of the text now that number of lines has been set
-    const limitedHeight = await measureHeightAsync(this._text);
-
-    if (fullHeight > limitedHeight) {
-      this.setState({ shouldShowReadMore: true }, () => {
-        this.props.onReady && this.props.onReady();
-      });
-    } else {
-      this.props.onReady && this.props.onReady();
-    }
   }
 
   componentWillUnmount() {
@@ -50,10 +29,25 @@ export default class ReadMore extends React.Component {
       <View>
         <Text
           numberOfLines={measured && !showAllText ? numberOfLines : 0}
-          style={this.props.textStyle}
-          ref={text => {
-            this._text = text;
+          onLayout={event => {
+            if (!this._isMounted) {
+              return;
+            }
+            if (!this.fullHeight) {
+              this.fullHeight = event.nativeEvent.layout.height;
+              this.setState({ measured: true });
+              return;
+            }
+            const limitedHeight = event.nativeEvent.layout.height;
+            if (this.fullHeight > limitedHeight) {
+              this.setState({ shouldShowReadMore: true }, () => {
+                this.props.onReady && this.props.onReady();
+              });
+            } else {
+              this.props.onReady && this.props.onReady();
+            }
           }}
+          style={this.props.textStyle}
         >
           {this.props.children}
         </Text>
@@ -98,21 +92,9 @@ export default class ReadMore extends React.Component {
   }
 }
 
-function measureHeightAsync(component) {
-  return new Promise(resolve => {
-    component.measure((x, y, w, h) => {
-      resolve(h);
-    });
-  });
-}
-
-function nextFrameAsync() {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()));
-}
-
 const styles = StyleSheet.create({
   button: {
     color: "#888",
-    marginTop: 5
-  }
+    marginTop: 5,
+  },
 });
